@@ -100,7 +100,6 @@ jobs:
                 
                 docker push --all-tags $IMG
 
-
         -
             name: Compute next version
             id: next_version
