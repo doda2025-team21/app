@@ -98,6 +98,19 @@ jobs:
 
                 echo "Major: $major, Minor: $minor, Patch: $patch"
 
+        # -
+        #     name: Compute next version
+        #     id: next_version
+        #     run: |
+        #         VERSION="${VERSION}"
+
+        #         IFS='.' read -r major minor patch <<< "${VERSION}"
+        #         next_patch=$((patch + 1))
+        #         NEXT_VERSION="${major}.${minor}.${next_patch}"
+
+        #         echo "Next version: $NEXT_VERSION"
+        #         echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+
         - 
             name: Build and push to GHCR 
             run: | 
@@ -120,19 +133,6 @@ jobs:
                 echo "ERROR: VERSION_MAJOR or VERSION_MINOR is empty."
                 exit 1
                 fi
-
-        -
-            name: Compute next version
-            id: next_version
-            run: |
-                VERSION="${VERSION}"
-
-                IFS='.' read -r major minor patch <<< "${VERSION}"
-                next_patch=$((patch + 1))
-                NEXT_VERSION="${major}.${minor}.${next_patch}"
-
-                echo "Next version: $NEXT_VERSION"
-                echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
 
         - 
             name: Set pom.xml to next version
