@@ -48,6 +48,7 @@ jobs:
                 if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
                     VERSION="${{ github.event.inputs.release_version }}"
                 else
+                    echo "Current version from github ${ GITHUB_REF_NAME#v }"
                     VERSION="${ GITHUB_REF_NAME#v }"
                 fi
 
