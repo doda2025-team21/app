@@ -85,20 +85,41 @@ jobs:
         #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.${{ env.version_minor }}.latest
         #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.latest
         #             ghcr.io/${{ github.repository }}:latest
+        
+        - 
+            name: Extract version components
+            run: |
+                VERSION="${{ env.VERSION }}"
+                IFS='.' read -r major minor patch <<< "$VERSION"
+
+                echo "VERSION_MAJOR=$major" >> $GITHUB_ENV
+                echo "VERSION_MINOR=$minor" >> $GITHUB_ENV
+                echo "VERSION_PATCH=$patch" >> $GITHUB_ENV
+
+                echo "Major: $major, Minor: $minor, Patch: $patch"
+
         - 
             name: Build and push to GHCR 
             run: | 
                 IMG="ghcr.io/${{ github.repository }}" 
                 IMG=${IMG@L} 
                 
-                docker build \ 
-                --tag $IMG:${{ env.version }} \ 
-                --tag $IMG:${{ env.version_major }}.${{ env.version_minor }}.latest \ 
-                --tag $IMG:${{ env.version_major }}.latest \ 
-                --tag $IMG:latest \ 
-                . 
+                docker build \
+                --tag $IMG:${VERSION} \
+                --tag $IMG:${VERSION_MAJOR}.${VERSION_MINOR}.latest \
+                --tag $IMG:${VERSION_MAJOR}.latest \
+                --tag $IMG:latest \
+                .
                 
                 docker push --all-tags $IMG
+
+        - 
+            name: Validate version fields
+            run: |
+                if [ -z "${{ env.VERSION_MAJOR }}" ] || [ -z "${{ env.VERSION_MINOR }}" ]; then
+                echo "ERROR: VERSION_MAJOR or VERSION_MINOR is empty."
+                exit 1
+                fi
 
         -
             name: Compute next version
