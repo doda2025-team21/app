@@ -1,0 +1,79 @@
+name: Release - App
+
+on:
+    push:
+        tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+jobs:
+    build:
+        runs-on: ubuntu-24.04
+        steps:
+        - 
+            name: Checkout repository
+            uses: actions/checkout@v4
+
+        - 
+            name: Login to docker
+            uses: docker/login-action@v3
+            with:
+                registry: ghcr.io
+                username: ${{ github.actor }}
+                password: ${{ secrets.GH_TOKEN }}
+
+        -
+            name: Set up JDK (for Maven build and pom.xml parsing)
+            uses: actions/setup-java@v4
+            with:
+                distribution: 'temurin'
+                java-version: '25'
+
+        - 
+            name: Build Spring Boot application
+            run: |
+                mvn -q -Dexec.cleanupDaemonThreads=false clean package 
+                echo "Maven build finished."
+
+        -
+            name: Parse and validate version (pom.xml vs tag)
+            run: |
+                # 1. Read version from pom.xml through Maven
+                
+                IMG_POM_VERSION=$(mvn -q -Dexec.cleanupDaemonThreads=false help:evaluate -Dexpression=project.version -DforceStdout)
+                echo "Version found in pom.xml: $IMG_POM_VERSION"
+
+                # 2. Extract version from tag (remove 'refs/tags/v')
+                
+                TAG_VERSION=${GITHUB_REF:11}
+                echo "Version from git tag: $TAG_VERSION"
+
+                # 3. Validate equality
+                
+                if [ "$IMG_POM_VERSION" != "$TAG_VERSION" ]; then
+                    echo "ERROR: pom.xml version ($IMG_POM_VERSION) does NOT match tag version ($TAG_VERSION)."
+                    exit 1
+                fi
+                
+                # 4. Export semantic parts
+                MAJOR=$(echo "$IMG_POM_VERSION" | cut -d . -f 1)
+                MINOR=$(echo "$IMG_POM_VERSION" | cut -d . -f 2)
+                PATCH=$(echo "$IMG_POM_VERSION" | cut -d . -f 3)
+
+                echo "version=$IMG_POM_VERSION" >> $GITHUB_ENV
+                echo "version_major=$MAJOR" >> $GITHUB_ENV
+                echo "version_minor=$MINOR" >> $GITHUB_ENV
+                echo "version_patch=$PATCH" >> $GITHUB_ENV
+
+        - 
+            name: Build and push to GHCR
+            run: |
+                IMG="ghcr.io/${{ github.repository }}"
+                IMG=${IMG@L}
+
+                docker build \
+                    --tag $IMG:${{ env.version }} \
+                    --tag $IMG:${{ env.version_major }}.${{ env.version_minor }}.latest \
+                    --tag $IMG:${{ env.version_major }}.latest \
+                    --tag $IMG:latest \
+                    .
+
+                docker push --all-tags $IMG
