@@ -81,7 +81,7 @@ jobs:
                 platforms: linux/amd64,linux/arm64
                 push: true
                 tags: |
-                    ghcr.io/${{ github.repository }}:${{ env.VERSION }}
+                    ghcr.io/${{ github.repository }}:${VERSION}
                     ghcr.io/${{ github.repository }}:${{ env.VERSION_MAJOR }}.${{ env.VERSION_MINOR }}.latest
                     ghcr.io/${{ github.repository }}:${{ env.VERSION_MAJOR }}.latest
                     ghcr.io/${{ github.repository }}:latest
