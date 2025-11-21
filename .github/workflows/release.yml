@@ -134,11 +134,11 @@ jobs:
                 exit 1
                 fi
 
-        - 
-            name: Set pom.xml to next version
-            run: |
-                mvn -B versions:set -DnewVersion=${NEXT_VERSION}
-                mvn -B versions:commit
+        # - 
+        #     name: Set pom.xml to next version
+        #     run: |
+        #         mvn -B versions:set -DnewVersion=${NEXT_VERSION}
+        #         mvn -B versions:commit
         
         - 
             name: Commit and push next version
@@ -148,7 +148,7 @@ jobs:
 
                 git add pom.xml
 
-                git commit -m "Bump version to ${NEXT_VERSION}" || echo "No changes to commit"
+                git commit -m "New version: ${VERSION}" || echo "No changes to commit"
 
                 # if something change then push
                 if git diff --quiet origin/main...HEAD; then
