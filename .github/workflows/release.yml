@@ -73,18 +73,32 @@ jobs:
             name: Set up Docker Buildx
             uses: docker/setup-buildx-action@v3
 
+        # - 
+        #     name: Build and push to GHCR
+        #     uses: docker/build-push-action@v6
+        #     with:
+        #         context: .
+        #         platforms: linux/amd64,linux/arm64
+        #         push: true
+        #         tags: |
+        #             ghcr.io/${{ github.repository }}:${{ env.version }}
+        #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.${{ env.version_minor }}.latest
+        #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.latest
+        #             ghcr.io/${{ github.repository }}:latest
         - 
-            name: Build and push to GHCR
-            uses: docker/build-push-action@v6
-            with:
-                context: .
-                platforms: linux/amd64,linux/arm64
-                push: true
-                tags: |
-                    ghcr.io/${{ github.repository }}:${{ env.version }}
-                    ghcr.io/${{ github.repository }}:${{ env.version_major }}.${{ env.version_minor }}.latest
-                    ghcr.io/${{ github.repository }}:${{ env.version_major }}.latest
-                    ghcr.io/${{ github.repository }}:latest
+            name: Build and push to GHCR 
+            run: | 
+                IMG="ghcr.io/${{ github.repository }}" 
+                IMG=${IMG@L} 
+                
+                docker build \ --tag $IMG:${{ env.version }} \ 
+                
+                --tag $IMG:${{ env.version_major }}.${{ env.version_minor }}.latest \ 
+                --tag $IMG:${{ env.version_major }}.latest \ 
+                --tag $IMG:latest \ 
+                . 
+                
+                docker push --all-tags $IMG
 
 
         -
