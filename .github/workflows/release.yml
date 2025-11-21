@@ -1,0 +1,158 @@
+name: Release - App
+
+on:
+    # for testing on local branch
+    push:
+        tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+    workflow_dispatch:
+        inputs:
+            release_version:
+                description: 'Release version (e.g. 1.2.3)'
+                required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+    build:
+        runs-on: ubuntu-24.04
+        steps:
+        - 
+            name: Checkout repository
+            uses: actions/checkout@v4
+            with:
+                fetch-depth: 0
+                ref: main
+
+        - 
+            name: Login to docker
+            uses: docker/login-action@v3
+            with:
+                registry: ghcr.io
+                username: ${{ github.actor }}
+                password: ${{ secrets.GH_TOKEN }}
+
+        -
+            name: Set up JDK (for Maven build and pom.xml parsing)
+            uses: actions/setup-java@v4
+            with:
+                distribution: 'temurin'
+                java-version: '25'
+
+        -  
+            name: Determine release version
+            id: get_version
+            run: |
+                # checking if the 
+                if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    VERSION="${{ github.event.inputs.release_version }}"
+                else
+                    echo "Current version from github ${GITHUB_REF_NAME#v}"
+                    VERSION="${GITHUB_REF_NAME#v}"
+                fi
+
+                echo "Release version: $VERSION"
+                echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+        -
+            name: Set pom.xml version to release version
+            run: |
+                mvn -B versions:set -DnewVersion=${VERSION}
+                mvn -B versions:commit
+      
+        - 
+            name: Show current version (debug)
+            run: mvn -q -Dexpression=project.version -DforceStdout help:evaluate
+
+        - 
+            name: Set up QEMU
+            uses: docker/setup-qemu-action@v3
+
+        - 
+            name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v3
+
+        # - 
+        #     name: Build and push to GHCR
+        #     uses: docker/build-push-action@v6
+        #     with:
+        #         context: .
+        #         platforms: linux/amd64,linux/arm64
+        #         push: true
+        #         tags: |
+        #             ghcr.io/${{ github.repository }}:${{ env.version }}
+        #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.${{ env.version_minor }}.latest
+        #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.latest
+        #             ghcr.io/${{ github.repository }}:latest
+        
+        - 
+            name: Extract version components
+            run: |
+                VERSION="${{ env.VERSION }}"
+                IFS='.' read -r major minor patch <<< "$VERSION"
+
+                echo "VERSION_MAJOR=$major" >> $GITHUB_ENV
+                echo "VERSION_MINOR=$minor" >> $GITHUB_ENV
+                echo "VERSION_PATCH=$patch" >> $GITHUB_ENV
+
+                echo "Major: $major, Minor: $minor, Patch: $patch"
+
+        # -
+        #     name: Compute next version
+        #     id: next_version
+        #     run: |
+        #         VERSION="${VERSION}"
+
+        #         IFS='.' read -r major minor patch <<< "${VERSION}"
+        #         next_patch=$((patch + 1))
+        #         NEXT_VERSION="${major}.${minor}.${next_patch}"
+
+        #         echo "Next version: $NEXT_VERSION"
+        #         echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+
+        - 
+            name: Build and push to GHCR 
+            run: | 
+                IMG="ghcr.io/${{ github.repository }}" 
+                IMG=${IMG@L} 
+                
+                docker build \
+                --tag $IMG:${VERSION} \
+                --tag $IMG:${VERSION_MAJOR}.${VERSION_MINOR}.latest \
+                --tag $IMG:${VERSION_MAJOR}.latest \
+                --tag $IMG:latest \
+                .
+                
+                docker push --all-tags $IMG
+
+        - 
+            name: Validate version fields
+            run: |
+                if [ -z "${{ env.VERSION_MAJOR }}" ] || [ -z "${{ env.VERSION_MINOR }}" ]; then
+                echo "ERROR: VERSION_MAJOR or VERSION_MINOR is empty."
+                exit 1
+                fi
+
+        # - 
+        #     name: Set pom.xml to next version
+        #     run: |
+        #         mvn -B versions:set -DnewVersion=${NEXT_VERSION}
+        #         mvn -B versions:commit
+        
+        - 
+            name: Commit and push next version
+            run: |
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
+
+                git add pom.xml
+
+                git commit -m "New version: ${VERSION}" || echo "No changes to commit"
+
+                # if something change then push
+                if git diff --quiet origin/main...HEAD; then
+                    echo "Nothing to push"
+                else
+                    git push origin HEAD:main
+                fi
