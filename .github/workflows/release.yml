@@ -54,6 +54,19 @@ jobs:
 
                 echo "Release version: $VERSION"
                 echo "VERSION=$VERSION" >> $GITHUB_ENV
+                
+        - 
+            name: Extract version components
+            run: |
+                VERSION="${{ env.VERSION }}"
+                IFS='.' read -r major minor patch <<< "$VERSION"
+
+                echo "VERSION_MAJOR=$major" >> $GITHUB_ENV
+                echo "VERSION_MINOR=$minor" >> $GITHUB_ENV
+                echo "VERSION_PATCH=$patch" >> $GITHUB_ENV
+
+                echo "Major: $major, Minor: $minor, Patch: $patch"
+        
 
         -
             name: Set pom.xml version to release version
@@ -73,30 +86,20 @@ jobs:
             name: Set up Docker Buildx
             uses: docker/setup-buildx-action@v3
 
-        # - 
-        #     name: Build and push to GHCR
-        #     uses: docker/build-push-action@v6
-        #     with:
-        #         context: .
-        #         platforms: linux/amd64,linux/arm64
-        #         push: true
-        #         tags: |
-        #             ghcr.io/${{ github.repository }}:${{ env.version }}
-        #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.${{ env.version_minor }}.latest
-        #             ghcr.io/${{ github.repository }}:${{ env.version_major }}.latest
-        #             ghcr.io/${{ github.repository }}:latest
-        
         - 
-            name: Extract version components
-            run: |
-                VERSION="${{ env.VERSION }}"
-                IFS='.' read -r major minor patch <<< "$VERSION"
-
-                echo "VERSION_MAJOR=$major" >> $GITHUB_ENV
-                echo "VERSION_MINOR=$minor" >> $GITHUB_ENV
-                echo "VERSION_PATCH=$patch" >> $GITHUB_ENV
-
-                echo "Major: $major, Minor: $minor, Patch: $patch"
+            name: Build and push to GHCR
+            uses: docker/build-push-action@v6
+            with:
+                context: .
+                platforms: linux/amd64,linux/arm64
+                push: true
+                tags: |
+                    ghcr.io/${{ github.repository }}:${{ env.VERSION }}
+                    ghcr.io/${{ github.repository }}:${{ env.VERSION_MAJOR }}.${{ env.VERSION_MINOR }}.latest
+                    ghcr.io/${{ github.repository }}:${{ env.VERSION_MAJOR }}.latest
+                    ghcr.io/${{ github.repository }}:latest
+        
+        
 
         # -
         #     name: Compute next version
@@ -111,20 +114,20 @@ jobs:
         #         echo "Next version: $NEXT_VERSION"
         #         echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
 
-        - 
-            name: Build and push to GHCR 
-            run: | 
-                IMG="ghcr.io/${{ github.repository }}" 
-                IMG=${IMG@L} 
+        # - 
+            # name: Build and push to GHCR 
+            # run: | 
+            #     IMG="ghcr.io/${{ github.repository }}" 
+            #     IMG=${IMG@L} 
                 
-                docker build \
-                --tag $IMG:${VERSION} \
-                --tag $IMG:${VERSION_MAJOR}.${VERSION_MINOR}.latest \
-                --tag $IMG:${VERSION_MAJOR}.latest \
-                --tag $IMG:latest \
-                .
+            #     docker build \
+            #     --tag $IMG:${VERSION} \
+            #     --tag $IMG:${VERSION_MAJOR}.${VERSION_MINOR}.latest \
+            #     --tag $IMG:${VERSION_MAJOR}.latest \
+            #     --tag $IMG:latest \
+            #     .
                 
-                docker push --all-tags $IMG
+            #     docker push --all-tags $IMG
 
         - 
             name: Validate version fields
