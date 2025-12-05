@@ -13,9 +13,10 @@ ENV MODEL_HOST=http://host.docker.internal:8081
 # install system requirements and expose the port
 RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 
-ENV APP_PORT=8080
+ENV APP_PORT=8080 \
+    METRICS_PORT=9090
 
-EXPOSE 8080
+EXPOSE 8080 9090
 
 # run the command to run the server
 CMD ["mvn", "spring-boot:run"]
