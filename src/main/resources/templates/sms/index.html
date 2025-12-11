@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8" />
@@ -7,22 +8,42 @@
 <script th:src="@{/sms/script.js}"></script>
 </head>
 <body>
-<span id="hostname" th:text="${hostname}"></span>
-<h1>SMS Checker</h1>
+<div class="page">
+	<header class="topbar">
+		<div class="branding">
+			<p class="eyebrow">SMS Classifier</p>
+			<h1>Check if an SMS is ham or spam</h1>
+		</div>
+		<div class="host">
+			<span class="host-label">Backend host:</span>
+			<span id="hostname" th:text="${hostname}"></span>
+		</div>
+	</header>
 
-<form>
+	<main class="card">
+		<p class="lede">Paste a message, choose the expected class, and send it to the model for a quick check.</p>
 
-<textarea>Example SMS ...</textarea><br />
+		<form class="sms-form">
+			<label for="sms-input">Message</label>
+			<textarea id="sms-input" aria-label="SMS content">Example SMS ...</textarea>
 
-<div class="radio">
-	<input type="radio" name="guess" value="ham" checked="checked" /> Ham<br />
-	<input type="radio" name="guess" value="spam" /> Spam<br />
+			<div class="radio-group">
+				<p class="label">Your guess</p>
+				<div class="radio">
+					<input type="radio" id="guess-ham" name="guess" value="ham" checked="checked" />
+					<label for="guess-ham">Ham</label>
+				</div>
+				<div class="radio">
+					<input type="radio" id="guess-spam" name="guess" value="spam" />
+					<label for="guess-spam">Spam</label>
+				</div>
+			</div>
+
+			<button type="submit">Send for prediction</button>
+		</form>
+
+		<p id="result"></p>
+	</main>
 </div>
-
-<button>Send</button>
-</form>
-
-<p id="result"></p>
-
 </body>
 </html>
