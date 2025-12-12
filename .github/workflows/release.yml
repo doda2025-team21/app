@@ -23,7 +23,11 @@ jobs:
             uses: actions/checkout@v4
             with:
                 fetch-depth: 0
-                ref: main
+                # This line sets the git reference (branch, tag, or commit SHA) to checkout.
+                # It uses the manually provided 'ref' input from workflow_dispatch if available,
+                # otherwise falls back to the reference that triggered the workflow (e.g., the branch or tag that initiated the run).
+                # Example: If triggered manually with ref='v1.0.0', it uses that tag; if triggered by a push to 'main', it uses 'refs/heads/main'.
+                ref: ${{ github.event.inputs.ref || github.ref }}
 
         - 
             name: Login to docker
