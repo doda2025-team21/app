@@ -41,7 +41,29 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>tudelft.doda2025.team21</groupId>
+			<artifactId>lib-version</artifactId>
+			<version>1.5.0</version>
+		</dependency>
+
 	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/doda2025-team22/lib-version</url>
+		</repository>
+	</repositories>
+
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>GitHub Packages</name>
+			<url>https://maven.pkg.github.com/doda2025-team22/app</url>
+		</repository>
+	</distributionManagement>
 
 	<build>
 		<plugins>
