@@ -39,6 +39,8 @@ jobs:
             with:
                 distribution: 'temurin'
                 java-version: '25'
+                server-username: MAVEN_USERNAME # env var names, not values
+                server-password: MAVEN_PASSWORD
 
         -  
             name: Determine release version
@@ -77,6 +79,12 @@ jobs:
         - 
             name: Show current version (debug)
             run: mvn -q -Dexpression=project.version -DforceStdout help:evaluate
+        
+        - name: Build & deploy
+          run: mvn -B deploy
+          env:
+            MAVEN_USERNAME: ${{ github.actor }}
+            MAVEN_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
         - 
             name: Set up QEMU
@@ -93,6 +101,10 @@ jobs:
                 context: .
                 platforms: linux/amd64,linux/arm64
                 push: true
+                build-args: |
+                    GH_ACTOR=${{ github.actor }}
+                    GH_TOKEN=${{ secrets.GH_TOKEN }}
+                    VERSION=${{ env.VERSION }}
                 tags: |
                     ghcr.io/${{ github.repository }}:${{ env.VERSION }}
                     ghcr.io/${{ github.repository }}:${{ env.VERSION_MAJOR }}.${{ env.VERSION_MINOR }}.latest
@@ -143,19 +155,19 @@ jobs:
         #         mvn -B versions:set -DnewVersion=${NEXT_VERSION}
         #         mvn -B versions:commit
         
-        - 
-            name: Commit and push next version
-            run: |
-                git config user.name "github-actions[bot]"
-                git config user.email "github-actions[bot]@users.noreply.github.com"
+        # - 
+        #     name: Commit and push next version
+        #     run: |
+        #         git config user.name "github-actions[bot]"
+        #         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-                git add pom.xml
+        #         git add pom.xml
 
-                git commit -m "New version: ${VERSION}" || echo "No changes to commit"
+        #         git commit -m "New version: ${VERSION}" || echo "No changes to commit"
 
-                # if something change then push
-                if git diff --quiet origin/main...HEAD; then
-                    echo "Nothing to push"
-                else
-                    git push origin HEAD:main
-                fi
+        #         # if something change then push
+        #         if git diff --quiet origin/main...HEAD; then
+        #             echo "Nothing to push"
+        #         else
+        #             git push origin HEAD:main
+        #         fi
