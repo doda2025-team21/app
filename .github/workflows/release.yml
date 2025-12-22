@@ -25,13 +25,28 @@ jobs:
                 fetch-depth: 0
                 ref: ${{ github.event.inputs.ref || github.ref }}
 
+        - name: Who am I with GITHUB_TOKEN
+          run: |
+                curl -sSf -H "Authorization: Bearer ${{ github.token }}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                https://api.github.com/user | jq -r '.login'
+
+        - name: Can token access GHCR /v2
+          run: |
+            code=$(curl -s -o /dev/null -w "%{http_code}" -I https://ghcr.io/v2/)
+            echo "GHCR /v2 status (no auth) = $code"
+            code2=$(curl -s -o /dev/null -w "%{http_code}" -I \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            https://ghcr.io/v2/)
+            echo "GHCR /v2 status (with Bearer token) = $code2"
+
         - 
             name: Login to docker
             uses: docker/login-action@v3
             with:
                 registry: ghcr.io
                 username: ${{ github.actor }}
-                password: ${{ secrets.GH_TOKEN }}
+                password: ${{ secrets.GITHUB_TOKEN }}
 
         -
             name: Set up JDK (for Maven build and pom.xml parsing)
@@ -39,6 +54,8 @@ jobs:
             with:
                 distribution: 'temurin'
                 java-version: '25'
+                server-username: MAVEN_USERNAME # env var names, not values
+                server-password: MAVEN_PASSWORD
 
         -  
             name: Determine release version
@@ -77,6 +94,12 @@ jobs:
         - 
             name: Show current version (debug)
             run: mvn -q -Dexpression=project.version -DforceStdout help:evaluate
+        
+        - name: Build & deploy
+          run: mvn -B deploy
+          env:
+            MAVEN_USERNAME: ${{ github.actor }}
+            MAVEN_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
         - 
             name: Set up QEMU
@@ -93,6 +116,10 @@ jobs:
                 context: .
                 platforms: linux/amd64,linux/arm64
                 push: true
+                build-args: |
+                    GH_ACTOR=${{ github.actor }}
+                    GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+                    VERSION=${{ env.VERSION }}
                 tags: |
                     ghcr.io/${{ github.repository }}:${{ env.VERSION }}
                     ghcr.io/${{ github.repository }}:${{ env.VERSION_MAJOR }}.${{ env.VERSION_MINOR }}.latest
@@ -143,19 +170,19 @@ jobs:
         #         mvn -B versions:set -DnewVersion=${NEXT_VERSION}
         #         mvn -B versions:commit
         
-        - 
-            name: Commit and push next version
-            run: |
-                git config user.name "github-actions[bot]"
-                git config user.email "github-actions[bot]@users.noreply.github.com"
+        # - 
+        #     name: Commit and push next version
+        #     run: |
+        #         git config user.name "github-actions[bot]"
+        #         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-                git add pom.xml
+        #         git add pom.xml
 
-                git commit -m "New version: ${VERSION}" || echo "No changes to commit"
+        #         git commit -m "New version: ${VERSION}" || echo "No changes to commit"
 
-                # if something change then push
-                if git diff --quiet origin/main...HEAD; then
-                    echo "Nothing to push"
-                else
-                    git push origin HEAD:main
-                fi
+        #         # if something change then push
+        #         if git diff --quiet origin/main...HEAD; then
+        #             echo "Nothing to push"
+        #         else
+        #             git push origin HEAD:main
+        #         fi
