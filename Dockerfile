@@ -14,7 +14,8 @@ ARG VERSION
 
 # install system requirements and expose the port
 RUN curl -u "${GH_ACTOR}:${GH_TOKEN}" -L\
-    "https://maven.pkg.github.com/doda2025-team21/app/com/doda/app/app/${VERSION}/app-${VERSION}.jar"\
+    # "https://maven.pkg.github.com/doda2025-team21/app/com/doda/app/app/${VERSION}/app-${VERSION}.jar"\
+    "https://maven.pkg.github.com/doda2025-team21/app/sms/frontend/${VERSION}/frontend-${VERSION}.jar" \
     -o app.jar
 
 # Configure Maven settings for GitHub Packages authentication
